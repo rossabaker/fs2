@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 import scalaz.concurrent.{Strategy,Task}
 import scalaz.\/._
 import scalaz.\/
-import scalaz.~>
+import cats.~>
 import scodec.bits.ByteVector
 
 object tcp {

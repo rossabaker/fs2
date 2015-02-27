@@ -2,7 +2,7 @@ package scalaz.stream
 
 import java.nio.charset.Charset
 import java.util.regex.Pattern
-import scalaz.std.string._
+import cats.std.string._
 import scodec.bits.ByteVector
 
 import process1._

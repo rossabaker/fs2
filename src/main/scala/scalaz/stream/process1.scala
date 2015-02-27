@@ -3,7 +3,9 @@ package scalaz.stream
 import scala.annotation.tailrec
 import scalaz.\/._
 import scalaz._
-import scalaz.syntax.equal._
+import cats.{Eq, Monoid, Order, Semigroup}
+import cats.std.function._
+import cats.syntax.eq._
 
 import Cause._
 import Process._
@@ -134,7 +136,7 @@ object process1 {
    * res0: List[Int] = List(1, 2, 1, 3)
    * }}}
    */
-  def distinctConsecutive[A: Equal]: Process1[A, A] =
+  def distinctConsecutive[A: Eq]: Process1[A, A] =
     distinctConsecutiveBy(identity)
 
   /**
@@ -147,8 +149,8 @@ object process1 {
    * res0: List[String] = List(a, ab, c)
    * }}}
    */
-  def distinctConsecutiveBy[A, B: Equal](f: A => B): Process1[A, A] =
-    filterBy2((a1, a2) => f(a1) =/= f(a2))
+  def distinctConsecutiveBy[A, B: Eq](f: A => B): Process1[A, A] =
+    filterBy2((a1, a2) => f(a1) =!= f(a2))
 
   /** Skips the first `n` elements of the input, then passes through the rest. */
   def drop[I](n: Int): Process1[I, I] =
@@ -284,7 +286,7 @@ object process1 {
    * Like `fold` but uses Monoid for folding operation
    */
   def foldMonoid[A](implicit M: Monoid[A]): Process1[A, A] =
-    fold(M.zero)(M.append(_, _))
+    fold(M.empty)(M.combine(_, _))
 
   /** Alias for `[[reduceSemigroup]](M)`. */
   def foldSemigroup[A](implicit M: Semigroup[A]): Process1[A, A] =
@@ -369,11 +371,11 @@ object process1 {
 
   /** Emits the greatest element of the input. */
   def maximum[A](implicit A: Order[A]): Process1[A,A] =
-    reduce((x, y) => if (A.greaterThan(x, y)) x else y)
+    reduce((x, y) => if (A.gt(x, y)) x else y)
 
   /** Emits the element `a` of the input which yields the greatest value of `f(a)`. */
   def maximumBy[A,B: Order](f: A => B): Process1[A,A] =
-    reduce((x, y) => if (Order.orderBy(f).greaterThan(x, y)) x else y)
+    reduce((x, y) => if (Order.by(f).gt(x, y)) x else y)
 
   /** Emits the greatest value of `f(a)` for each element `a` of the input. */
   def maximumOf[A,B: Order](f: A => B): Process1[A,B] =
@@ -381,11 +383,11 @@ object process1 {
 
   /** Emits the smallest element of the input. */
   def minimum[A](implicit A: Order[A]): Process1[A,A] =
-    reduce((x, y) => if (A.lessThan(x, y)) x else y)
+    reduce((x, y) => if (A.lt(x, y)) x else y)
 
   /** Emits the element `a` of the input which yields the smallest value of `f(a)`. */
   def minimumBy[A,B: Order](f: A => B): Process1[A,A] =
-    reduce((x, y) => if (Order.orderBy(f).lessThan(x, y)) x else y)
+    reduce((x, y) => if (Order.by(f).lt(x, y)) x else y)
 
   /** Emits the smallest value of `f(a)` for each element `a` of the input. */
   def minimumOf[A,B: Order](f: A => B): Process1[A,B] =
@@ -454,7 +456,7 @@ object process1 {
 
   /** Like `reduce` but uses Semigroup `M` for associative operation. */
   def reduceSemigroup[A](implicit M: Semigroup[A]): Process1[A, A] =
-    reduce(M.append(_, _))
+    reduce(M.combine(_, _))
 
   /**
    * Repartitions the input with the function `p`. On each step `p` is applied
@@ -470,7 +472,7 @@ object process1 {
   def repartition[I](p: I => IndexedSeq[I])(implicit I: Semigroup[I]): Process1[I, I] = {
     def go(carry: Option[I]): Process1[I, I] =
       receive1Or[I,I](emitAll(carry.toList)) { i =>
-        val next = carry.fold(i)(c => I.append(c, i))
+        val next = carry.fold(i)(c => I.combine(c, i))
         val parts = p(next)
         parts.size match {
           case 0 => go(None)
@@ -491,7 +493,7 @@ object process1 {
   def repartition2[I](p: I => (Option[I], Option[I]))(implicit I: Semigroup[I]): Process1[I,I] = {
     def go(carry: Option[I]): Process1[I,I] =
       receive1Or[I,I](emitAll(carry.toList)) { i =>
-        val next = carry.fold(i)(c => I.append(c, i))
+        val next = carry.fold(i)(c => I.combine(c, i))
         val (fst, snd) = p(next)
         fst.fold(go(snd))(head => emit(head) fby go(snd))
       }
@@ -550,11 +552,11 @@ object process1 {
    * Like `scan` but uses Monoid for associative operation
    */
   def scanMonoid[A](implicit M: Monoid[A]): Process1[A, A] =
-    scan(M.zero)(M.append(_, _))
+    scan(M.empty)(M.combine(_, _))
 
   /** Like `scan1` but uses Semigroup `M` for associative operation. */
   def scanSemigroup[A](implicit M: Semigroup[A]): Process1[A, A] =
-    scan1(M.append(_, _))
+    scan1(M.combine(_, _))
 
   /**
    * Emit the given values, then echo the rest of the input.
@@ -616,7 +618,7 @@ object process1 {
    * The delimiter does not appear in the output. Two adjacent delimiters in the
    * input result in an empty chunk in the output.
    */
-  def splitOn[I: Equal](i: I): Process1[I, Vector[I]] =
+  def splitOn[I: Eq](i: I): Process1[I, Vector[I]] =
     split(_ === i)
 
   /**
@@ -838,11 +840,11 @@ private[stream] trait Process1Ops[+F[_],+O] {
     this |> process1.delete(f)
 
   /** Alias for `this |> [[process1.distinctConsecutive]]`. */
-  def distinctConsecutive[O2 >: O](implicit O2: Equal[O2]): Process[F,O2] =
+  def distinctConsecutive[O2 >: O](implicit O2: Eq[O2]): Process[F,O2] =
     this |> process1.distinctConsecutive(O2)
 
   /** Alias for `this |> [[process1.distinctConsecutiveBy]](f)`. */
-  def distinctConsecutiveBy[B: Equal](f: O => B): Process[F,O] =
+  def distinctConsecutiveBy[B: Eq](f: O => B): Process[F,O] =
     this |> process1.distinctConsecutiveBy(f)
 
   /** Alias for `this |> [[process1.drop]](n)`. */
@@ -1022,7 +1024,7 @@ private[stream] trait Process1Ops[+F[_],+O] {
     this |> process1.split(f)
 
   /** Alias for `this |> [[process1.splitOn]](p)` */
-  def splitOn[P >: O](p: P)(implicit P: Equal[P]): Process[F,Vector[P]] =
+  def splitOn[P >: O](p: P)(implicit P: Eq[P]): Process[F,Vector[P]] =
     this |> process1.splitOn(p)
 
   /** Alias for `this |> [[process1.splitWith]](f)` */

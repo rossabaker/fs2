@@ -6,8 +6,8 @@ import org.scalacheck.Properties
 
 import scalaz.concurrent.{Strategy, Task}
 import scalaz.stream.Process._
-import scalaz.syntax.equal._
-import scalaz.std.anyVal._
+import cats.syntax.eq._
+import cats.std.all._
 import TestInstances.equalProcessTask
 
 //import scalaz.syntax.equal._

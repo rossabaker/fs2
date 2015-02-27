@@ -10,6 +10,7 @@ import scalaz.stream.ReceiveY._
 import scalaz.stream.Util._
 import scalaz.stream.process1.Await1
 import scalaz.{-\/, Either3, Left3, Middle3, Right3, \/, \/-}
+import cats.std.function._
 
 
 object wye {

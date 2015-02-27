@@ -1,21 +1,24 @@
 package scalaz.stream
 
-import scalaz.{~>, Hoist, Monad, MonadPlus}
+import cats.{~>, Monad, MonadCombine}
 
 private[stream] trait ProcessInstances {
 
   // leaving the name for compatibility, but this really should be called something better
-  implicit def ProcessMonadPlus[F[_]]: MonadPlus[({ type λ[α] = Process[F, α] })#λ] =
-    new MonadPlus[({ type λ[α] = Process[F, α] })#λ] {
+  implicit def ProcessMonadPlus[F[_]]: MonadCombine[({ type λ[α] = Process[F, α] })#λ] =
+    new MonadCombine[({ type λ[α] = Process[F, α] })#λ] {
       def empty[A] = Process.halt
-      def plus[A](a: Process[F, A], b: => Process[F, A]): Process[F, A] = a ++ b
-      def point[A](a: => A): Process[F, A] = Process.emit(a)
-      def bind[A, B](a: Process[F, A])(f: A => Process[F, B]): Process[F, B] = a flatMap f
+      def combine[A](a: Process[F, A], b: Process[F, A]): Process[F, A] = a ++ b
+      def pure[A](a: A): Process[F, A] = Process.emit(a)
+      def flatMap[A, B](a: Process[F, A])(f: A => Process[F, B]): Process[F, B] = a flatMap f
     }
 
+  /* CATSTODO
   implicit val ProcessHoist: Hoist[Process] = new ProcessHoist {}
+  */
 }
 
+/* CATSTODO
 private trait ProcessHoist extends Hoist[Process] {
 
   // the monad is actually unnecessary here except to match signatures
@@ -30,3 +33,4 @@ private trait ProcessHoist extends Hoist[Process] {
     def apply[A](p: Process[M, A]): Process[N, A] = p translate f
   }
 }
+*/

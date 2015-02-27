@@ -2,7 +2,9 @@ package scalaz.stream
 
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Arbitrary.arbitrary
-import scalaz.Equal
+import cats.Eq
+import cats.std.all._
+import cats.data.Or._
 import scalaz.concurrent.Task
 import scodec.bits.ByteVector
 
@@ -52,9 +54,11 @@ object TestInstances {
       arbitrary[B].map(ReceiveR(_))
     ))
 
-  implicit def equalProcess0[A: Equal]: Equal[Process0[A]] =
-    Equal.equal(_.toList == _.toList)
+  implicit def equalProcess0[A: Eq]: Eq[Process0[A]] =
+    Eq.by(_.toList)
 
-  implicit def equalProcessTask[A:Equal]: Equal[Process[Task,A]] =
-    Equal.equal(_.runLog.attemptRun == _.runLog.attemptRun)
+  implicit def equalProcessTask[A:Eq]: Eq[Process[Task,A]] =
+    new Eq[Process[Task, A]] {
+      def eqv(x: Process[Task, A], y: Process[Task, A]): Boolean = x.runLog.attemptRun == y.runLog.attemptRun
+    }
 }

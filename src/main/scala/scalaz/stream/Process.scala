@@ -6,7 +6,11 @@ import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.SortedMap
 import scala.concurrent.duration._
-import scalaz.{Catchable, Functor, Monad, Monoid, Nondeterminism, \/, -\/, ~>}
+import scalaz.{Catchable, Nondeterminism, \/, -\/}
+import cats._
+import cats.std.list._
+import cats.std.function._
+import cats.syntax.foldable._
 import scalaz.\/._
 import scalaz.concurrent.{Actor, Strategy, Task}
 import scalaz.stream.process1.Await1
@@ -402,7 +406,7 @@ sealed trait Process[+F[_], +O]
     }
 
   /** Translate the request type from `F` to `G`, using the given polymorphic function. */
-  def translate[G[_]](f: F ~> G): Process[G,O] =
+  def translate[FF[x] >: F[x], G[_]](f: FF ~> G): Process[G,O] =
     this.suspendStep.flatMap {
       case Step(Emit(os),cont) => emitAll(os) +: cont.extend(_.translate(f))
       case Step(Await(req,rcv),cont) =>
@@ -465,22 +469,22 @@ sealed trait Process[+F[_], +O]
         case s: Step[F2,O]@unchecked =>
           (s.head, s.next) match {
             case (Emit(os), cont) =>
-              F.bind(F.point(os.foldLeft(acc)((b, o) => B.append(b, f(o))))) { nacc =>
+              F.flatMap(F.pure(os.foldLeft(acc)((b, o) => B.combine(b, f(o))))) { nacc =>
                 go(cont.continue.asInstanceOf[Process[F2,O]], nacc)
               }
             case (awt:Await[F2,Any,O]@unchecked, cont) =>
-              F.bind(C.attempt(awt.req)) { r =>
+              F.flatMap(C.attempt(awt.req)) { r =>
                 go((Try(awt.rcv(EarlyCause(r)).run) +: cont).asInstanceOf[Process[F2,O]]
                   , acc)
               }
           }
-        case Halt(End) => F.point(acc)
-        case Halt(Kill) => F.point(acc)
+        case Halt(End) => F.pure(acc)
+        case Halt(Kill) => F.pure(acc)
         case Halt(Error(rsn)) => C.fail(rsn)
       }
     }
 
-    go(this, B.zero)
+    go(this, B.empty)
   }
 
 
@@ -493,7 +497,10 @@ sealed trait Process[+F[_], +O]
     F.map(runFoldMap[F2, Vector[O2]](Vector(_))(
       F, C,
       // workaround for performance bug in Vector ++
-      Monoid.instance[Vector[O2]]((a, b) => a fast_++ b, Vector())
+      new Monoid[Vector[O2]] {
+        def empty: Vector[O2] = Vector.empty
+        def combine(x: Vector[O2], y: Vector[O2]): Vector[O2] = x fast_++ y
+      }
     ))(_.toIndexedSeq)
   }
 
@@ -523,8 +530,8 @@ object Process extends ProcessInstances {
   //
   /////////////////////////////////////////////////////////////////////////////////////
 
-  type Trampoline[+A] = scalaz.Free.Trampoline[A] @uncheckedVariance
-  val Trampoline = scalaz.Trampoline
+  type Trampoline[+A] = cats.free.Trampoline[A] @uncheckedVariance
+  val Trampoline = cats.free.Trampoline
 
   /**
    * Tags a state of process that has no appended tail, tha means can be Halt, Emit or Await
@@ -1204,7 +1211,6 @@ object Process extends ProcessInstances {
 
     /** converts sink to sink that first pipes received `I0` to supplied p1 */
     def pipeIn[I0](p1: Process1[I0, I]): Sink[Task, I0] = {
-      import scalaz.Scalaz._
       // Note: Function `f` from sink `self` may be used for more than 1 element emitted by `p1`.
       @volatile var cur: Process1[I0, I] = p1
       self.map { (f: I => Task[Unit]) =>

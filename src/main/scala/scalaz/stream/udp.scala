@@ -3,7 +3,7 @@ package scalaz.stream
 import java.net.{DatagramPacket,DatagramSocket,InetSocketAddress}
 import scala.concurrent.duration.Duration
 import scalaz.concurrent.{Task,Strategy}
-import scalaz.~>
+import cats.~>
 import scodec.bits.ByteVector
 
 object udp {

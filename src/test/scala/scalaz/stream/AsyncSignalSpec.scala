@@ -8,8 +8,7 @@ import scala.concurrent.SyncVar
 import scala.concurrent.duration._
 import scalaz.concurrent.Task
 import scalaz.stream.async.mutable.Signal
-import scalaz.syntax.monad._
-import scalaz.{-\/, Nondeterminism, \/, \/-}
+import scalaz._
 
 /**
  * Created by pach on 03/05/14.

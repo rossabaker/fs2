@@ -2,6 +2,7 @@ package scalaz
 
 import java.util.concurrent.{ThreadFactory, Executors}
 
+import cats.Semigroup
 import scodec.bits.ByteVector
 
 import scalaz.stream.Process.Env
@@ -86,7 +87,7 @@ package object stream {
     })
   }
 
-  implicit val byteVectorSemigroupInstance: Semigroup[ByteVector] =
-    Semigroup.instance(_ ++ _)
-
+  implicit val byteVectorSemigroupInstance: Semigroup[ByteVector] = new Semigroup[ByteVector] {
+    def combine(x: ByteVector, y: ByteVector): ByteVector = x ++ y
+  }
 }

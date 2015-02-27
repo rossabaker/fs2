@@ -4,7 +4,7 @@ name := "scalaz-stream"
 
 version := "snapshot-0.6a"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.5"
 
 crossScalaVersions := Seq("2.10.4", "2.11.4")
 
@@ -27,10 +27,9 @@ scalacOptions in (Compile, doc) ++= Seq(
 resolvers ++= Seq(Resolver.sonatypeRepo("releases"), Resolver.sonatypeRepo("snapshots"))
 
 libraryDependencies ++= Seq(
-  "org.scalaz" %% "scalaz-core" % "7.1.0",
-  "org.scalaz" %% "scalaz-concurrent" % "7.1.0",
+  "org.spire-math" %% "cats-std" % "0.1.0-SNAPSHOT",
+  "org.spire-math" %% "cats-data" % "0.1.0-SNAPSHOT",
   "org.typelevel" %% "scodec-bits" % "1.0.4",
-  "org.scalaz" %% "scalaz-scalacheck-binding" % "7.1.0" % "test",
   "org.scalacheck" %% "scalacheck" % "1.11.6" % "test"
 )
 

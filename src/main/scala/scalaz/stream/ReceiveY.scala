@@ -1,6 +1,6 @@
 package scalaz.stream
 
-import scalaz.{Monoid, Applicative, Equal, Monad}
+import cats.{Monoid, Applicative, Eq, Monad}
 
 
 sealed trait ReceiveY[+A,+B] {
@@ -62,17 +62,19 @@ object ReceiveY {
     }
   }
 
-  implicit def receiveYequal[X, Y](implicit X: Equal[X], Y: Equal[Y]): Equal[ReceiveY[X, Y]] =
-    Equal.equal{
-      case (ReceiveL(a), ReceiveL(b)) => X.equal(a, b)
-      case (ReceiveR(a), ReceiveR(b)) => Y.equal(a, b)
-      case _ => false
+  implicit def receiveYequal[X, Y](implicit X: Eq[X], Y: Eq[Y]): Eq[ReceiveY[X, Y]] =
+    new Eq[ReceiveY[X, Y]] {
+      def eqv(x: ReceiveY[X, Y], y: ReceiveY[X, Y]): Boolean = (x, y) match {
+        case (ReceiveL(a), ReceiveL(b)) => X.eqv(a, b)
+        case (ReceiveR(a), ReceiveR(b)) => Y.eqv(a, b)
+        case _ => false
+      }
     }
 
   implicit def receiveYInstance[X](implicit X: Monoid[X]) =
     new Monad[({type f[y] = ReceiveY[X,y]})#f] {
-      def point[Y](x: => Y): ReceiveY[X,Y] = ReceiveR(x)
-      def bind[Y,Y2](t: ReceiveY[X,Y])(f: Y => ReceiveY[X,Y2]): ReceiveY[X,Y2] =
+      def pure[Y](x: Y): ReceiveY[X,Y] = ReceiveR(x)
+      def flatMap[Y,Y2](t: ReceiveY[X,Y])(f: Y => ReceiveY[X,Y2]): ReceiveY[X,Y2] =
         t match {
           case a@ReceiveL(_) => a
           case ReceiveR(x) => f(x)
@@ -93,11 +95,10 @@ object ReceiveY {
   def concatRight[A,B](s: Seq[ReceiveY[A,B]]): Stream[B] =
     s.view.flatMap { case ReceiveR(b) => List(b); case _ => List() }.toStream
 
-  import scalaz.syntax.{ApplyOps, ApplicativeOps, FunctorOps, MonadOps}
-
   trait ReceiveT[X] { type f[y] = ReceiveY[X,y] }
 
-  implicit def toMonadOps[X:Monoid,A](f: ReceiveY[X,A]): MonadOps[ReceiveT[X]#f,A] =
+  /** CATSTODO
+  implicit def toMonadOps[X:Monoid,A](f: ReceiveY[X,A]): cats.syntax.MonadOps[ReceiveT[X]#f,A] =
     receiveYInstance.monadSyntax.ToMonadOps(f)
   implicit def toApplicativeOps[X:Monoid,A](f: ReceiveY[X,A]): ApplicativeOps[ReceiveT[X]#f,A] =
     receiveYInstance.applicativeSyntax.ToApplicativeOps(f)
@@ -105,4 +106,5 @@ object ReceiveY {
     receiveYInstance.applySyntax.ToApplyOps(f)
   implicit def toFunctorOps[X:Monoid,A](f: ReceiveY[X,A]): FunctorOps[ReceiveT[X]#f,A] =
     receiveYInstance.functorSyntax.ToFunctorOps(f)
+  */
 }

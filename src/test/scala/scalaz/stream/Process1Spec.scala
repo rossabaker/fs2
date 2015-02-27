@@ -2,16 +2,12 @@ package scalaz.stream
 
 import org.scalacheck._
 import org.scalacheck.Prop._
-import scalaz.{\/-, -\/, Equal, Monoid}
-import scalaz.std.anyVal._
-import scalaz.std.list._
-import scalaz.std.list.listSyntax._
-import scalaz.std.vector._
-import scalaz.std.string._
-import scalaz.std.option._
-import scalaz.std.tuple._
-import scalaz.syntax.equal._
-import scalaz.syntax.foldable._
+import scalaz.{\/-, -\/}
+import cats.{Monoid}
+import cats.std.all._
+import cats.syntax.eq._
+import cats.syntax.foldable._
+import scalaz._
 
 import Process._
 import process1._
@@ -69,7 +65,7 @@ object Process1Spec extends Properties("Process1") {
         , "filter" |: pi.filter(g).toList === li.filter(g)
         , "filterBy2" |: pi.filterBy2(_ < _).toList.sliding(2).dropWhile(_.size < 2).forall(l => l(0) < l(1))
         , "fold" |: pi.fold(0)(_ + _).toList === List(li.fold(0)(_ + _))
-        , "foldMap" |: pi.foldMap(_.toString).toList.lastOption.toList === List(li.map(_.toString).fold(sm.zero)(sm.append(_, _)))
+        , "foldMap" |: pi.foldMap(_.toString).toList.lastOption.toList === List(li.map(_.toString).fold(sm.empty)(sm.combine(_, _)))
         , "forall" |: pi.forall(g).toList === List(li.forall(g))
         , "id" |: ((pi |> id).toList === li) && ((id |> pi).toList === li)
         , "intersperse" |: pi.intersperse(0).toList === li.intersperse(0)

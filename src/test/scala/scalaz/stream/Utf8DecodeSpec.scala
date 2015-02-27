@@ -2,9 +2,8 @@ package scalaz.stream
 
 import org.scalacheck._
 import Prop._
-import scalaz.std.list._
-import scalaz.std.string._
-import scalaz.syntax.equal._
+import cats.std.all._
+import cats.syntax.eq._
 import scodec.bits.ByteVector
 
 import Process._

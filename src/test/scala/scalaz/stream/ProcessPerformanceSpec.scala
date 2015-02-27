@@ -4,7 +4,7 @@ package scalaz.stream
 import concurrent.duration._
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
-import scalaz.Monoid
+import cats.Monoid
 import scalaz.concurrent.Task
 import Process._
 
@@ -62,7 +62,10 @@ object ProcessPerformanceSpec extends Properties("Process-performance") {
   }
 
 
-  implicit val B = Monoid.instance[Int]((a, b) => a + b, 0)
+  implicit val B = new Monoid[Int] {
+    def empty: Int = 0
+    def combine(x: Int, y: Int): Int = x + y
+  }
 
   val defaultDistribution = Seq(1, 10, 100, 1000, 10 * 1000, 100 * 1000, 1000 * 1000)
 

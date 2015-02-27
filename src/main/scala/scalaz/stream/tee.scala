@@ -6,6 +6,7 @@ import scalaz.{\/-, \/}
 import scalaz.\/._
 import scalaz.stream.Process._
 import scalaz.stream.Util._
+import cats.std.function._
 
 object tee {
 

@@ -4,11 +4,9 @@ import org.scalacheck.Prop._
 
 import Cause._
 import scalaz._
-import scalaz.syntax.equal._
-import scalaz.std.anyVal._
-import scalaz.std.list._
-import scalaz.std.list.listSyntax._
-import scalaz.std.string._
+import cats.Monoid
+import cats.syntax.eq._
+import cats.std.all._
 
 import org.scalacheck.{Gen, Arbitrary, Properties}
 import scalaz.concurrent.{Task, Strategy}

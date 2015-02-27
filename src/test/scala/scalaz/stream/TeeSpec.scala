@@ -6,15 +6,10 @@ import scalaz.concurrent.{Task, Strategy}
 
 import org.scalacheck._
 import org.scalacheck.Prop._
-import scalaz.{Equal, Monoid}
-import scalaz.std.anyVal._
-import scalaz.std.list._
-import scalaz.std.list.listSyntax._
-import scalaz.std.vector._
-import scalaz.std.string._
-import scalaz.std.tuple._
-import scalaz.syntax.equal._
-import scalaz.syntax.foldable._
+import scalaz._
+import cats.{Eq, Monoid}
+import cats.std.all._
+import cats.syntax.all._
 
 import Process._
 import process1._
